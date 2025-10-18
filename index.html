@@ -151,7 +151,7 @@
     amount: rec.amount
   }));
 
-  let start = new Date(2025, 8); // 9月（0-indexed）
+  let start = new Date(2025, 8); // 2025年9月（0-indexed）
   let remaining = goalAmount;
   let cumulativePlanned = 0;
   let cumulativeActual = 0;
@@ -160,19 +160,27 @@
     const year = start.getFullYear();
     const month = start.getMonth() + 1;
 
-    // 予定返済額
+    // 予定返済額の計算
     let planned = 40000;
-    if (month === 6 || month === 12) planned += 300000;
+
+    // 🎯 頭金（2025年9月）を追加
+    if (year === 2025 && month === 9) {
+      planned += 200000;
+    }
+
+    // 🎯 ボーナス月（6月・12月）追加返済
+    if (month === 6 || month === 12) {
+      planned += 300000;
+    }
 
     if (planned > remaining) planned = remaining;
     cumulativePlanned += planned;
     remaining -= planned;
 
-    // 実績：該当月の入金合計
+    // 実績計算
     const monthlyActual = allRecords
       .filter(r => r.date.getFullYear() === year && r.date.getMonth() === start.getMonth())
       .reduce((sum, r) => sum + r.amount, 0);
-
     cumulativeActual += monthlyActual;
 
     const row = document.createElement("tr");
@@ -191,7 +199,9 @@
 }
 
 
+
     renderTable();
   </script>
 </body>
 </html>
+
