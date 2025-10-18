@@ -46,16 +46,31 @@
     display: none !important;
   }
 
-  #printArea, #printArea * {
+  #printArea,
+  #printArea h2,
+  #printArea table,
+  #printArea thead,
+  #printArea tbody,
+  #printArea tr,
+  #printArea td,
+  #printArea th {
+    display: table-header-group !important; /* 正常なテーブル表示を維持 */
+    visibility: visible !important;
+  }
+
+  #printArea {
     display: block !important;
+    position: static;
   }
 
   #printArea table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: auto;
   }
 
-  #printArea th, #printArea td {
+  #printArea th,
+  #printArea td {
     border: 1px solid #ccc;
     padding: 0.5em;
     text-align: center;
@@ -66,7 +81,6 @@
   }
 }
 </style>
-
 
 <script>
 function printTables() {
@@ -214,6 +228,7 @@ function renderRepaymentSchedule(goalAmount) {
   </script>
 </body>
 </html>
+
 
 
 
