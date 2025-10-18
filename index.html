@@ -1,3 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>カンタン入金記録ツール</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 2em;
+      background: #f4f4f4;
+    }
+    input, button {
+      padding: 0.5em;
+      margin: 0.3em;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+      background: white;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5em;
+      text-align: center;
+    }
+    .alert {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>カンタン入金記録ツール</h1>
+
+  <div>
+    <label>入金日: <input type="date" id="dateInput"></label>
+    <label>金額: <input type="number" id="amountInput" min="0"></label>
+    <button onclick="addRecord()">記録する</button>
+  </div>
+
+  <div>
+    <p>目標金額: <strong id="fixedGoal">1,300,000</strong> 円</p>
+  </div>
+
+  <h2>入金履歴</h2>
+  <table id="historyTable">
+    <thead>
+      <tr>
+        <th>入金日</th>
+        <th>金額</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>集計</h2>
+  <p>合計入金額: <span id="totalAmount">0</span> 円</p>
+  <p>残り金額: <span id="remainingAmount">0</span> 円</p>
+
+  <p id="alertMessage" class="alert"></p>
+
+<h2>返済予定スケジュール</h2>
+<table id="repaymentScheduleTable">
+  <thead>
+    <tr>
+      <th>年月</th>
+      <th>予定返済額</th>
+      <th>累計予定額</th>
+      <th style="color: darkblue;">返済実績</th>
+      <th style="color: darkblue;">累計返済実績</th>
+      <th>残額</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+
+  <script>
+    const storageKey = "savingsRecords";
+
+    function loadRecords() {
+      const data = localStorage.getItem(storageKey);
+      return data ? JSON.parse(data) : [];
+    }
+
+    function saveRecords(records) {
+      localStorage.setItem(storageKey, JSON.stringify(records));
+    }
+
+    function addRecord() {
+      const date = document.getElementById("dateInput").value;
+      const amount = parseInt(document.getElementById("amountInput").value);
+      if (!date || isNaN(amount) || amount <= 0) {
+        alert("正しい日付と金額を入力してください。");
+        return;
+      }
+
+      const records = loadRecords();
+      records.push({ date, amount });
+      saveRecords(records);
+      renderTable();
+    }
+
+    function renderTable() {
+      const records = loadRecords().sort((a, b) => new Date(a.date) - new Date(b.date));
+      const tbody = document.querySelector("#historyTable tbody");
+      tbody.innerHTML = "";
+
+      let total = 0;
+      records.forEach(rec => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${rec.date}</td><td>${rec.amount.toLocaleString()}</td>`;
+        tbody.appendChild(row);
+        total += rec.amount;
+      });
+
+      const goal = 1300000;
+      document.getElementById("totalAmount").textContent = total.toLocaleString();
+      document.getElementById("remainingAmount").textContent = (goal - total).toLocaleString();
+
+      checkAlert(records);
+      renderRepaymentSchedule(goal);
+    }
+
+    function checkAlert(records) {
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth();
+      const expectedDay = 28;
+
+      const found = records.some(r => {
+        const d = new Date(r.date);
+        return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      });
+
+      const alertEl = document.getElementById("alertMessage");
+      if (!found && today.getDate() > expectedDay) {
+        alertEl.textContent = "⚠ 今月の入金がまだ記録されていません！";
+      } else {
+        alertEl.textContent = "";
+      }
+    }
+
 function renderRepaymentSchedule(goalAmount) {
   const tbody = document.querySelector("#repaymentScheduleTable tbody");
   tbody.innerHTML = "";
@@ -74,3 +218,9 @@ function renderRepaymentSchedule(goalAmount) {
     start.setMonth(start.getMonth() + 1);
   }
 }
+
+
+    renderTable();
+  </script>
+</body>
+</html>
