@@ -40,7 +40,7 @@
   </div>
 
   <div>
-    <label>目標金額: <input type="number" id="goalInput" min="0" value="100000" onchange="updateSummary()"></label>
+    <p>目標金額: <strong id="fixedGoal">1,300,000</strong> 円</p>
   </div>
 
   <h2>入金履歴</h2>
@@ -59,6 +59,19 @@
   <p>残り金額: <span id="remainingAmount">0</span> 円</p>
 
   <p id="alertMessage" class="alert"></p>
+
+  <h2>返済予定スケジュール</h2>
+  <table id="repaymentScheduleTable">
+    <thead>
+      <tr>
+        <th>年月</th>
+        <th>予定返済額</th>
+        <th>累計返済額</th>
+        <th>残額</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
     const storageKey = "savingsRecords";
@@ -99,22 +112,19 @@
         total += rec.amount;
       });
 
-      const goal = parseInt(document.getElementById("goalInput").value);
+      const goal = 1300000;
       document.getElementById("totalAmount").textContent = total.toLocaleString();
       document.getElementById("remainingAmount").textContent = (goal - total).toLocaleString();
 
       checkAlert(records);
-    }
-
-    function updateSummary() {
-      renderTable();
+      renderRepaymentSchedule(goal);
     }
 
     function checkAlert(records) {
       const today = new Date();
       const currentYear = today.getFullYear();
       const currentMonth = today.getMonth();
-      const expectedDay = 28; // 入金予定日（毎月28日などに変更可）
+      const expectedDay = 28;
 
       const found = records.some(r => {
         const d = new Date(r.date);
@@ -126,6 +136,49 @@
         alertEl.textContent = "⚠ 今月の入金がまだ記録されていません！";
       } else {
         alertEl.textContent = "";
+      }
+    }
+
+    function renderRepaymentSchedule(goalAmount) {
+      const tbody = document.querySelector("#repaymentScheduleTable tbody");
+      tbody.innerHTML = "";
+
+      let today = new Date();
+      today.setDate(1); // 月初に揃える
+
+      let remaining = goalAmount;
+      let cumulative = 0;
+      let count = 0;
+
+      while (remaining > 0 && count < 60) { // 最大60ヶ月（5年）で制限
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1; // 0-indexedなので +1
+        let repayment = 40000;
+
+        // 6月 or 12月は追加で30万
+        if (month === 6 || month === 12) {
+          repayment += 300000;
+        }
+
+        if (repayment > remaining) {
+          repayment = remaining;
+        }
+
+        cumulative += repayment;
+        remaining -= repayment;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${year}年${month.toString().padStart(2, '0')}月</td>
+          <td>${repayment.toLocaleString()}</td>
+          <td>${cumulative.toLocaleString()}</td>
+          <td>${remaining.toLocaleString()}</td>
+        `;
+        tbody.appendChild(row);
+
+        // 次の月へ
+        today.setMonth(today.getMonth() + 1);
+        count++;
       }
     }
 
