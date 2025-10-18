@@ -142,7 +142,7 @@
       }
     }
 
-  function renderRepaymentSchedule(goalAmount) {
+function renderRepaymentSchedule(goalAmount) {
   const tbody = document.querySelector("#repaymentScheduleTable tbody");
   tbody.innerHTML = "";
 
@@ -160,33 +160,35 @@
     const year = start.getFullYear();
     const month = start.getMonth() + 1;
 
-    // 予定返済額の計算
+    // 1. 予定返済額の計算
     let planned = 40000;
 
-    // 🎯 頭金（2025年9月）を追加
     if (year === 2025 && month === 9) {
-      planned += 200000;
+      planned += 200000; // 🎯 頭金
     }
 
-    // 🎯 ボーナス月（6月・12月）追加返済
     if (month === 6 || month === 12) {
-      planned += 300000;
+      planned += 300000; // 🎯 ボーナス返済
     }
 
-    if (planned > remaining) planned = remaining;
-    cumulativePlanned += planned;
-    remaining -= planned;
+    // 2. 上限調整：予定が残額より多い場合はカット
+    const actualPlanned = Math.min(planned, remaining);
 
-    // 実績計算
+    // 3. 累計・残額更新
+    cumulativePlanned += actualPlanned;
+    remaining -= actualPlanned;
+
+    // 4. 実績計算
     const monthlyActual = allRecords
       .filter(r => r.date.getFullYear() === year && r.date.getMonth() === start.getMonth())
       .reduce((sum, r) => sum + r.amount, 0);
     cumulativeActual += monthlyActual;
 
+    // 5. 表示
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${year}年${String(month).padStart(2, '0')}月</td>
-      <td>${planned.toLocaleString()}</td>
+      <td>${actualPlanned.toLocaleString()}</td>
       <td>${cumulativePlanned.toLocaleString()}</td>
       <td style="font-weight: bold; color: darkblue;">${monthlyActual.toLocaleString()}</td>
       <td style="font-weight: bold; color: darkblue;">${cumulativeActual.toLocaleString()}</td>
@@ -204,4 +206,5 @@
   </script>
 </body>
 </html>
+
 
