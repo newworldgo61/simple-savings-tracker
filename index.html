@@ -42,45 +42,53 @@
 
 <style>
 @media print {
+  /* すべて一旦非表示 */
   body * {
     display: none !important;
   }
 
+  /* 印刷対象だけ表示 */
   #printArea,
-  #printArea h2,
-  #printArea table,
-  #printArea thead,
-  #printArea tbody,
-  #printArea tr,
-  #printArea td,
-  #printArea th {
-    display: table-header-group !important; /* 正常なテーブル表示を維持 */
+  #printArea h2 {
+    display: block !important;
     visibility: visible !important;
   }
 
-  #printArea {
-    display: block !important;
-    position: static;
-  }
-
   #printArea table {
+    display: table !important;
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto;
+    visibility: visible !important;
   }
 
-  #printArea th,
-  #printArea td {
+  #printArea thead {
+    display: table-header-group !important;
+  }
+
+  #printArea tbody {
+    display: table-row-group !important;
+  }
+
+  #printArea tr {
+    display: table-row !important;
+  }
+
+  #printArea td,
+  #printArea th {
+    display: table-cell !important;
     border: 1px solid #ccc;
     padding: 0.5em;
     text-align: center;
+    visibility: visible !important;
   }
 
+  /* ボタンは非表示 */
   button {
     display: none !important;
   }
 }
 </style>
+
 
 <script>
 function printTables() {
@@ -228,6 +236,7 @@ function renderRepaymentSchedule(goalAmount) {
   </script>
 </body>
 </html>
+
 
 
 
