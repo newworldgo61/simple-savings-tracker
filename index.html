@@ -38,7 +38,32 @@
     <label>金額: <input type="number" id="amountInput" min="0"></label>
     <button onclick="addRecord()">記録する</button>
   </div>
+<button onclick="printTables()">印刷する</button>
 
+<style>
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #historyTable, #repaymentScheduleTable {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  button {
+    display: none;
+  }
+}
+</style>
+
+<script>
+function printTables() {
+  window.print();
+}
+</script>
+  
   <h2>入金履歴</h2>
   <table id="historyTable">
     <thead>
@@ -178,4 +203,5 @@ function renderRepaymentSchedule(goalAmount) {
   </script>
 </body>
 </html>
+
 
