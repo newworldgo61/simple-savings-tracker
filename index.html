@@ -105,77 +105,72 @@
       });
     }
 
-    function renderRepaymentSchedule(goalAmount) {
-      const tbody = document.querySelector("#repaymentScheduleTable tbody");
-      tbody.innerHTML = "";
+function renderRepaymentSchedule(goalAmount) {
+  const tbody = document.querySelector("#repaymentScheduleTable tbody");
+  tbody.innerHTML = "";
 
-      const allRecords = loadRecords().map(rec => ({
-        date: new Date(rec.date),
-        amount: rec.amount
-      }));
+  const allRecords = loadRecords().map(rec => ({
+    date: new Date(rec.date),
+    amount: rec.amount
+  }));
 
-      let start = new Date(2025, 8); // 2025年9月（0-indexed）
-      let remaining = goalAmount;
-      let cumulativePlanned = 0;
-      let cumulativeActual = 0;
+  let start = new Date(2025, 8); // 2025年9月
+  let remaining = goalAmount;
+  let cumulativePlanned = 0;
+  let cumulativeActual = 0;
 
-      for (let i = 0; i < 60 && remaining > 0; i++) {
-        const year = start.getFullYear();
-        const month = start.getMonth() + 1;
+  for (let i = 0; i < 60 && remaining > 0; i++) {
+    const year = start.getFullYear();
+    const month = start.getMonth() + 1;
 
-        // 1. 予定返済額の計算
-        let planned = 40000;
-        if (year === 2025 && month === 9) {
-          planned += 200000; // 頭金
-        }
-        if (month === 6 || month === 12) {
-          planned += 300000; // ボーナス返済
-        }
+    // 予定返済額計算
+    let planned = 40000;
+    if (year === 2025 && month === 9) planned += 200000; // 頭金
+    if (month === 6 || month === 12) planned += 300000;   // ボーナス
 
-        // 上限調整
-        const actualPlanned = Math.min(planned, remaining);
-        cumulativePlanned += actualPlanned;
-        remaining -= actualPlanned;
+    const actualPlanned = Math.min(planned, remaining);
+    cumulativePlanned += actualPlanned;
+    remaining -= actualPlanned;
 
-        // その月の入金合計
-        const monthlyActual = allRecords
-          .filter(r => r.date.getFullYear() === year && r.date.getMonth() === start.getMonth())
-          .reduce((sum, r) => sum + r.amount, 0);
+    // その月の実績合計
+    const monthlyActual = allRecords
+      .filter(r => r.date.getFullYear() === year && r.date.getMonth() === start.getMonth())
+      .reduce((sum, r) => sum + r.amount, 0);
 
-        // その月以前に入金があるかチェック
-        const hasAnyActual = allRecords.some(r => {
-          return (
-            r.date.getFullYear() < year ||
-            (r.date.getFullYear() === year && r.date.getMonth() <= start.getMonth())
-          );
-        });
+    // 累計実績を更新（まだ加算しない）
+    const tentativeCumulativeActual = cumulativeActual + monthlyActual;
 
-        let rowHtml = `
-          <td>${year}年${String(month).padStart(2, '0')}月</td>
-          <td>${actualPlanned.toLocaleString()}</td>
-          <td>${cumulativePlanned.toLocaleString()}</td>
-        `;
+    // 空白表示判定
+    // 累計実績が0かつ当月実績も0 → 空白。ただし9月頭金は例外で表示
+    const isFutureNoPayment = (tentativeCumulativeActual === 0 && monthlyActual === 0 && !(year === 2025 && month === 9));
 
-        if (hasAnyActual) {
-          cumulativeActual += monthlyActual;
-          const remainingAfterActual = goalAmount - cumulativeActual;
+    let rowHtml = `
+      <td>${year}年${String(month).padStart(2, '0')}月</td>
+      <td>${actualPlanned.toLocaleString()}</td>
+      <td>${cumulativePlanned.toLocaleString()}</td>
+    `;
 
-          rowHtml += `
-            <td style="font-weight: bold; color: darkblue;">${monthlyActual.toLocaleString()}</td>
-            <td style="font-weight: bold; color: darkblue;">${cumulativeActual.toLocaleString()}</td>
-            <td>${Math.max(remainingAfterActual, 0).toLocaleString()}</td>
-          `;
-        } else {
-          rowHtml += `<td></td><td></td><td></td>`;
-        }
-
-        const row = document.createElement("tr");
-        row.innerHTML = rowHtml;
-        tbody.appendChild(row);
-
-        start.setMonth(start.getMonth() + 1);
-      }
+    if (isFutureNoPayment) {
+      // 空白にする
+      rowHtml += `<td></td><td></td><td></td>`;
+    } else {
+      cumulativeActual = tentativeCumulativeActual;
+      const remainingAfterActual = goalAmount - cumulativeActual;
+      rowHtml += `
+        <td style="font-weight: bold; color: darkblue;">${monthlyActual.toLocaleString()}</td>
+        <td style="font-weight: bold; color: darkblue;">${cumulativeActual.toLocaleString()}</td>
+        <td>${Math.max(remainingAfterActual, 0).toLocaleString()}</td>
+      `;
     }
+
+    const row = document.createElement("tr");
+    row.innerHTML = rowHtml;
+    tbody.appendChild(row);
+
+    start.setMonth(start.getMonth() + 1);
+  }
+}
+
 
     // 初期表示
     renderTable();
@@ -183,3 +178,4 @@
   </script>
 </body>
 </html>
+
