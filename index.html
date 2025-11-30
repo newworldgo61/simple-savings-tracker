@@ -42,12 +42,10 @@
 
 <style>
 @media print {
-  /* すべて一旦非表示 */
   body * {
     display: none !important;
   }
 
-  /* 印刷対象だけ表示 */
   #printArea,
   #printArea h2 {
     display: block !important;
@@ -82,13 +80,11 @@
     visibility: visible !important;
   }
 
-  /* ボタンは非表示 */
   button {
     display: none !important;
   }
 }
 </style>
-
 
 <script>
 function printTables() {
@@ -96,7 +92,7 @@ function printTables() {
 }
 </script>
 
-  <div id="printArea">
+<div id="printArea">
   <h2>入金履歴</h2>
   <table id="historyTable">
     <thead>
@@ -123,45 +119,66 @@ function printTables() {
     <tbody></tbody>
   </table>
 </div>
-  <script>
-    const goalAmount = 1300000;
-    const storageKey = "savingsRecords";
 
-    function loadRecords() {
-      const data = localStorage.getItem(storageKey);
-      return data ? JSON.parse(data) : [];
+<script>
+const goalAmount = 1300000;
+const storageKey = "savingsRecords";
+
+function loadRecords() {
+  const data = localStorage.getItem(storageKey);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveRecords(records) {
+  localStorage.setItem(storageKey, JSON.stringify(records));
+}
+
+function addRecord() {
+  const date = document.getElementById("dateInput").value;
+  const amount = parseInt(document.getElementById("amountInput").value);
+  if (!date || isNaN(amount) || amount <= 0) {
+    alert("正しい日付と金額を入力してください。");
+    return;
+  }
+
+  const records = loadRecords();
+  records.push({ date, amount });
+  saveRecords(records);
+  renderTable();
+  renderRepaymentSchedule(goalAmount);
+}
+
+function renderTable() {
+  const records = loadRecords().sort((a, b) => new Date(a.date) - new Date(b.date));
+  const tbody = document.querySelector("#historyTable tbody");
+  tbody.innerHTML = "";
+
+  records.forEach(rec => {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${rec.date}</td><td>${rec.amount.toLocaleString()}</td>`;
+    tbody.appendChild(row);
+  });
+}
+
+/* 入金日を「どの月の実績に付けるか」判定する関数 */
+function decideActualYearMonth(dateObj) {
+  const day = dateObj.getDate();
+  let y = dateObj.getFullYear();
+  let m = dateObj.getMonth(); // 0-11
+
+  if (day <= 15) {
+    // 前半 → 先月へ
+    if (m === 0) {
+      y -= 1;
+      m = 11;
+    } else {
+      m -= 1;
     }
+  }
+  // 後半 → 当月のまま
 
-    function saveRecords(records) {
-      localStorage.setItem(storageKey, JSON.stringify(records));
-    }
-
-    function addRecord() {
-      const date = document.getElementById("dateInput").value;
-      const amount = parseInt(document.getElementById("amountInput").value);
-      if (!date || isNaN(amount) || amount <= 0) {
-        alert("正しい日付と金額を入力してください。");
-        return;
-      }
-
-      const records = loadRecords();
-      records.push({ date, amount });
-      saveRecords(records);
-      renderTable();
-      renderRepaymentSchedule(goalAmount);
-    }
-
-    function renderTable() {
-      const records = loadRecords().sort((a, b) => new Date(a.date) - new Date(b.date));
-      const tbody = document.querySelector("#historyTable tbody");
-      tbody.innerHTML = "";
-
-      records.forEach(rec => {
-        const row = document.createElement("tr");
-        row.innerHTML = `<td>${rec.date}</td><td>${rec.amount.toLocaleString()}</td>`;
-        tbody.appendChild(row);
-      });
-    }
+  return { y, m };
+}
 
 function renderRepaymentSchedule(goalAmount) {
   const tbody = document.querySelector("#repaymentScheduleTable tbody");
@@ -181,26 +198,27 @@ function renderRepaymentSchedule(goalAmount) {
     const year = start.getFullYear();
     const month = start.getMonth() + 1;
 
-    // 予定返済額計算
+    // 予定返済額
     let planned = 40000;
     if (year === 2025 && month === 9) planned += 200000; // 頭金
-    if (month === 6 || month === 12) planned += 300000;   // ボーナス
+    if (month === 6 || month === 12) planned += 300000;  // ボーナス
 
     const actualPlanned = Math.min(planned, remaining);
     cumulativePlanned += actualPlanned;
     remaining -= actualPlanned;
 
-    // その月の実績合計
+    // ★ 修正された「前半→先月 / 後半→当月」の実績集計
     const monthlyActual = allRecords
-      .filter(r => r.date.getFullYear() === year && r.date.getMonth() === start.getMonth())
+      .filter(r => {
+        const actual = decideActualYearMonth(r.date);
+        return actual.y === year && actual.m === start.getMonth();
+      })
       .reduce((sum, r) => sum + r.amount, 0);
 
-    // 累計実績を更新（まだ加算しない）
     const tentativeCumulativeActual = cumulativeActual + monthlyActual;
 
-    // 空白表示判定
-    // 累計実績が0かつ当月実績も0 → 空白。ただし9月頭金は例外で表示
-    const isFutureNoPayment = (tentativeCumulativeActual === 0 && monthlyActual === 0 && !(year === 2025 && month === 9));
+    const isFutureNoPayment =
+      (tentativeCumulativeActual === 0 && monthlyActual === 0 && !(year === 2025 && month === 9));
 
     let rowHtml = `
       <td>${year}年${String(month).padStart(2, '0')}月</td>
@@ -209,7 +227,6 @@ function renderRepaymentSchedule(goalAmount) {
     `;
 
     if (isFutureNoPayment) {
-      // 空白にする
       rowHtml += `<td></td><td></td><td></td>`;
     } else {
       cumulativeActual = tentativeCumulativeActual;
@@ -229,15 +246,11 @@ function renderRepaymentSchedule(goalAmount) {
   }
 }
 
+// 初期表示
+renderTable();
+renderRepaymentSchedule(goalAmount);
 
-    // 初期表示
-    renderTable();
-    renderRepaymentSchedule(goalAmount);
-  </script>
+</script>
+
 </body>
 </html>
-
-
-
-
-
