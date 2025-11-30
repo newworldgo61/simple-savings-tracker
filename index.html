@@ -28,6 +28,14 @@
       color: red;
       font-weight: bold;
     }
+    .delete-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 0.3em 0.6em;
+      cursor: pointer;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -99,6 +107,7 @@ function printTables() {
       <tr>
         <th>入金日</th>
         <th>金額</th>
+        <th>削除</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -148,34 +157,45 @@ function addRecord() {
   renderRepaymentSchedule(goalAmount);
 }
 
+/* ★ 入金履歴削除処理 ★ */
+function deleteRecord(index) {
+  if (!confirm("この記録を削除しますか？")) return;
+
+  let recs = loadRecords();
+  recs.splice(index, 1);
+  saveRecords(recs);
+
+  renderTable();
+  renderRepaymentSchedule(goalAmount);
+}
+
+/* 履歴テーブル表示（削除ボタン付き） */
 function renderTable() {
   const records = loadRecords().sort((a, b) => new Date(a.date) - new Date(b.date));
   const tbody = document.querySelector("#historyTable tbody");
   tbody.innerHTML = "";
 
-  records.forEach(rec => {
+  records.forEach((rec, idx) => {
     const row = document.createElement("tr");
-    row.innerHTML = `<td>${rec.date}</td><td>${rec.amount.toLocaleString()}</td>`;
+    row.innerHTML = `
+      <td>${rec.date}</td>
+      <td>${rec.amount.toLocaleString()}</td>
+      <td><button class="delete-btn" onclick="deleteRecord(${idx})">削除</button></td>
+    `;
     tbody.appendChild(row);
   });
 }
 
-/* 入金日を「どの月の実績に付けるか」判定する関数 */
+/* 入金日 → どの月の実績にするか判定 */
 function decideActualYearMonth(dateObj) {
   const day = dateObj.getDate();
   let y = dateObj.getFullYear();
   let m = dateObj.getMonth(); // 0-11
 
   if (day <= 15) {
-    // 前半 → 先月へ
-    if (m === 0) {
-      y -= 1;
-      m = 11;
-    } else {
-      m -= 1;
-    }
+    if (m === 0) { y -= 1; m = 11; }
+    else { m -= 1; }
   }
-  // 後半 → 当月のまま
 
   return { y, m };
 }
@@ -189,7 +209,7 @@ function renderRepaymentSchedule(goalAmount) {
     amount: rec.amount
   }));
 
-  let start = new Date(2025, 8); // 2025年9月
+  let start = new Date(2025, 8);
   let remaining = goalAmount;
   let cumulativePlanned = 0;
   let cumulativeActual = 0;
@@ -198,16 +218,14 @@ function renderRepaymentSchedule(goalAmount) {
     const year = start.getFullYear();
     const month = start.getMonth() + 1;
 
-    // 予定返済額
     let planned = 40000;
-    if (year === 2025 && month === 9) planned += 200000; // 頭金
-    if (month === 6 || month === 12) planned += 300000;  // ボーナス
+    if (year === 2025 && month === 9) planned += 200000;
+    if (month === 6 || month === 12) planned += 300000;
 
     const actualPlanned = Math.min(planned, remaining);
     cumulativePlanned += actualPlanned;
     remaining -= actualPlanned;
 
-    // ★ 修正された「前半→先月 / 後半→当月」の実績集計
     const monthlyActual = allRecords
       .filter(r => {
         const actual = decideActualYearMonth(r.date);
@@ -221,7 +239,7 @@ function renderRepaymentSchedule(goalAmount) {
       (tentativeCumulativeActual === 0 && monthlyActual === 0 && !(year === 2025 && month === 9));
 
     let rowHtml = `
-      <td>${year}年${String(month).padStart(2, '0')}月</td>
+      <td>${year}年${String(month).padStart(2, "0")}月</td>
       <td>${actualPlanned.toLocaleString()}</td>
       <td>${cumulativePlanned.toLocaleString()}</td>
     `;
@@ -246,7 +264,6 @@ function renderRepaymentSchedule(goalAmount) {
   }
 }
 
-// 初期表示
 renderTable();
 renderRepaymentSchedule(goalAmount);
 
